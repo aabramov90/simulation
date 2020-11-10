@@ -1,0 +1,110 @@
+---
+title: "simulation"
+author:  "Alexey Abramov"
+date: "11/9/2020"
+output: 
+  github_document:
+    toc: true
+---
+
+# Setup
+
+```{r, setup}
+library(tidyverse)
+library(rvest)
+library(purrr)
+
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.height = 6,
+  out.width = "90%"
+)
+
+theme_set(
+  ggthemes::theme_fivethirtyeight() + theme(legend.position = "bottom")
+  )
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.colour = "viridis"
+)
+
+scale_colour_discrete = scale_color_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+Examples 
+
+```{r}
+sim_mean_sd = function(samp_size, mu = 3, sigma = 4) {
+  sim_data = 
+    tibble(
+      x = rnorm(n = samp_size, mean = mu, sd = sigma)
+    )
+
+  sim_data %>% 
+    summarize(
+      mean = mean(x),
+      sd = sd(x)
+    )
+}
+```
+
+I can "simulate" this
+
+```{r}
+sim_mean_sd(30)
+```
+
+But now let's really do it with a  for loop.
+
+```{r}
+output = vector("list", length = 100)
+
+for (i in 1:100) {
+  output[[i]] = sim_mean_sd(samp_size = 30)
+}
+
+bind_rows(output)
+```
+
+Lets use a loop function.
+
+```{r}
+sim_results =
+  rerun(100, sim_mean_sd(samp_size =30)) %>% 
+  bind_rows()
+
+
+```
+
+Let's try other sample sizes
+n = 30 is the name of the elements in the list.
+
+```{r}
+n_list = 
+  list(
+    "n = 30" = 30,
+    "n = 60" = 60,
+    "n = 120" = 120,
+    "n = 500" = 500)
+
+output = vector("list", length = 4)
+
+output[[1]] = rerun(100, sim_mean_sd(samp_size = n_list[[1]])) %>% 
+  bind_rows()
+```
+ 
+ 
+Now a for loop!
+
+```{r}
+for (i in 1:4) {
+  
+  output[[i]] = rerun(100, sim_mean_sd(samp_size = n_list[[i]])) %>% 
+  bind_rows()
+  
+}
+```
+
