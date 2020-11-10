@@ -40,9 +40,6 @@ library(rvest)
     ##     guess_encoding
 
 ``` r
-library(purrr)
-
-
 knitr::opts_chunk$set(
   fig.width = 6,
   fig.height = 6,
@@ -60,6 +57,8 @@ options(
 
 scale_colour_discrete = scale_color_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
+
+set.seed(1)
 ```
 
 Examples
@@ -88,7 +87,7 @@ sim_mean_sd(30)
     ## # A tibble: 1 x 2
     ##    mean    sd
     ##   <dbl> <dbl>
-    ## 1  3.26  4.01
+    ## 1  3.33  3.70
 
 But now let’s really do it with a for loop.
 
@@ -105,16 +104,16 @@ bind_rows(output)
     ## # A tibble: 100 x 2
     ##     mean    sd
     ##    <dbl> <dbl>
-    ##  1  4.15  3.52
-    ##  2  3.08  5.32
-    ##  3  2.49  3.58
-    ##  4  1.15  4.16
-    ##  5  2.57  3.59
-    ##  6  2.43  3.79
-    ##  7  2.57  4.41
-    ##  8  2.70  4.04
-    ##  9  1.99  3.21
-    ## 10  2.72  3.19
+    ##  1  3.53  3.18
+    ##  2  3.44  3.84
+    ##  3  3.45  3.53
+    ##  4  1.68  3.69
+    ##  5  3.95  4.22
+    ##  6  3.27  4.34
+    ##  7  2.05  4.05
+    ##  8  3.10  3.72
+    ##  9  3.55  4.11
+    ## 10  3.87  3.79
     ## # … with 90 more rows
 
 Lets use a loop function.
@@ -152,3 +151,56 @@ for (i in 1:4) {
   
 }
 ```
+
+.x is the argument that goes INSIDE of rerun function Rerun here is
+spitting out lists and now into a dataframe And now we want to UN-NEST
+it
+
+``` r
+sim_results = 
+  tibble(
+  sample_size = c(30, 60, 120, 500)) %>% 
+    mutate(
+      output_lists = map(.x = sample_size, ~ rerun(100, sim_mean_sd(.x))),
+      estimate_df = map(output_lists, bind_rows)
+      ) %>% 
+  select(-output_lists) %>% 
+  unnest(estimate_df)
+```
+
+Do some dataframe things
+
+Rename the sample\_size column And reorder them
+
+``` r
+sim_results %>% 
+  mutate(
+    sample_size = str_c("n = ", sample_size),
+    sample_size = fct_inorder(sample_size)
+  ) %>% 
+  ggplot(aes(x = sample_size, y = mean)) +
+  geom_boxplot()
+```
+
+<img src="simulation_files/figure-gfm/unnamed-chunk-8-1.png" width="90%" />
+
+Summarize
+
+``` r
+sim_results %>% 
+  group_by(sample_size) %>% 
+  summarize(
+      avg_sample_mean = mean(mean),
+      sd_sample_mean = sd(mean)
+      )
+```
+
+    ## `summarise()` ungrouping output (override with `.groups` argument)
+
+    ## # A tibble: 4 x 3
+    ##   sample_size avg_sample_mean sd_sample_mean
+    ##         <dbl>           <dbl>          <dbl>
+    ## 1          30            2.94          0.722
+    ## 2          60            2.97          0.486
+    ## 3         120            3.02          0.344
+    ## 4         500            3.02          0.174

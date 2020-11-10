@@ -12,7 +12,6 @@ output:
 ```{r, setup}
 library(tidyverse)
 library(rvest)
-library(purrr)
 
 
 knitr::opts_chunk$set(
@@ -32,6 +31,8 @@ options(
 
 scale_colour_discrete = scale_color_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
+
+set.seed(1)
 ```
 
 Examples 
@@ -107,4 +108,46 @@ for (i in 1:4) {
   
 }
 ```
+
+.x is the argument that goes INSIDE of rerun function
+Rerun here is spitting out lists and now into a dataframe
+And now we want to UN-NEST it
+
+```{r, cache = TRUE}
+sim_results = 
+  tibble(
+  sample_size = c(30, 60, 120, 500)) %>% 
+    mutate(
+      output_lists = map(.x = sample_size, ~ rerun(100, sim_mean_sd(.x))),
+      estimate_df = map(output_lists, bind_rows)
+      ) %>% 
+  select(-output_lists) %>% 
+  unnest(estimate_df)
+```
+
+Do some dataframe things
+
+Rename the sample_size column 
+And reorder them
+
+```{r}
+sim_results %>% 
+  mutate(
+    sample_size = str_c("n = ", sample_size),
+    sample_size = fct_inorder(sample_size)
+  ) %>% 
+  ggplot(aes(x = sample_size, y = mean)) +
+  geom_boxplot()
+```
+
+Summarize
+```{r}
+sim_results %>% 
+  group_by(sample_size) %>% 
+  summarize(
+      avg_sample_mean = mean(mean),
+      sd_sample_mean = sd(mean)
+      )
+```
+
 
